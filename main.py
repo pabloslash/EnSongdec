@@ -9,7 +9,7 @@ import datetime
 def add_to_sys_path(root_dir):
     for dirpath, dirnames, filenames in os.walk(root_dir):
         sys.path.append(dirpath)        
-root_dir = '/home/jovyan/pablo_tostado/bird_song/decoding_paper_analysis/'
+root_dir = '/home/jovyan/pablo_tostado/bird_song/enSongDec/'
 add_to_sys_path(root_dir)
 
 
@@ -21,7 +21,7 @@ import utils.signal_utils as su
 import utils.train_utils as tu
 import utils.visualization_utils as vu
 
-exec(open('/home/jovyan/pablo_tostado/bird_song/decoding_paper_analysis/utils/all_imports.py').read())
+exec(open('/home/jovyan/pablo_tostado/bird_song/enSongDec/utils/all_imports.py').read())
 
 
 def flatten_dict(d):
@@ -48,13 +48,13 @@ def main(config_filepath, override_dict=None):
                 for k_val in v:
                     override_experiment_metadata[k] = k_val
                     print(f'Updated {k} to {k_val}')
-                    run_experiment(override_experiment_metadata)
+                    run_experiment(override_experiment_metadata, config_filepath)
             else:
                 print(f'{k} not found in experiment_metadata. Skipping override.')
     else:
-        run_experiment(experiment_metadata)
+        run_experiment(experiment_metadata, config_filepath)
 
-def run_experiment(experiment_metadata):
+def run_experiment(experiment_metadata, config_filepath):
 
     # --------- EXTRACT CONFIG INFO --------- #
     # Directories of interest
@@ -150,18 +150,18 @@ def run_experiment(experiment_metadata):
     history_size = samples_neural//samples_embeddings
     
     # Match neural to audio samples (! Different for raw spiketrains vs trajectories)
-    if neural_mode == 'RAW':
-        print('Pre-processing neural data as RAW')
+    if neural_mode == 'RAW' or neural_mode == 'THRESHOLDS':
+        print(f'Pre-processing neural data as {neural_mode}')
         # Gaussian kernel along the temporal dimension of the spiketrains
         neural_array = gaussian_filter1d(neural_array, sigma=gaussian_smoothing_sigma, axis=2) 
         # Downsample to spikerate at given bin_size
         neural_array = sh.downsample_list_3d(neural_array, history_size, mode='sum')  
     elif neural_mode == 'TRAJECTORIES':
-        print('Pre-processing neural data as TRAJECTORIES')
+        print(f'Pre-processing neural data as {neural_mode}')
         # Downsample by interpolation
         neural_array = np.array([su.resample_by_interpolation_2d(n, samples_neural, samples_embeddings) for n in neural_array])
     else:
-        raise ValueError("Neural mode must be 'RAW' or 'TRAJECTORIES'")
+        raise ValueError("Neural mode must be 'RAW', 'THRESHOLDS' or 'TRAJECTORIES'")
     
     bin_length = trial_length_neural / neural_array.shape[2] # ms
     history_size = int(neural_history_ms // bin_length) # Must be minimum 1
@@ -178,7 +178,7 @@ def run_experiment(experiment_metadata):
     
     num_motifs = len(neural_array)
     num_train_examples = int(num_motifs * percent_train)
-    print('Out of the {} total motifs, the first {} are used for training. The rest, for testing.'.format(num_motifs, num_train_examples))
+    print(f'Out of the {num_motifs} total motifs, the first {num_train_examples} are used for training. The rest, for testing.')
     
     # Split the data into train and test sets
     train_idxs = list(range(0, num_train_examples))
@@ -284,9 +284,7 @@ def run_experiment(experiment_metadata):
     experiment_metadata['tot_val_err'] = tot_val_err
     
     tu.save_model(models_checkpoints_dir, experiment_name, ffnn_model, optimizer, experiment_metadata)
-    
 
-# Call main:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the bird song decoding experiment.")
