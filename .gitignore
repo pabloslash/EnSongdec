@@ -4,11 +4,6 @@ wandb/
 models_checkpoints/
 
 .ipynb_checkpoints/
-configs/.ipynb_checkpoints/
-notebooks/.ipynb_checkpoints/
-src/models/.ipynb_checkpoints/
-src/models/__pycache__/
-utils/.ipynb_checkpoints/
-utils/__pycache__/
-ensongdec/utils/__pycache__/
+.ipynb_checkpoints/
 __pycache__/
+*.egg-info/
