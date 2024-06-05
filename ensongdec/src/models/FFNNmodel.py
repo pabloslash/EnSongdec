@@ -67,6 +67,8 @@ def ffnn_train(model, dataloader, optimizer, criterion, num_epochs, val_dataload
             val_loss, val_error = ffnn_evaluate(model, val_dataloader, criterion, device)
             tot_val_loss.append(val_loss)
             tot_val_err.append(val_error)
+        else:
+            val_loss, val_error = None, None
 
         # log metrics to wandb
         if log_wandb:

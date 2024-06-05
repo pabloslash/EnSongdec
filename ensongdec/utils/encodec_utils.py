@@ -2,16 +2,20 @@ import numpy as np
 import torch
 from encodec.utils import convert_audio
 import typing as tp
-    
 
-def ompute_num_model_params(model):
-    # Print the size of each layer and the total number of parameters
-    total_params = 0
-    for name, parameter in model.named_parameters():
-        print(f"Layer: {name} | Size: {parameter.size()} | Number of Parameters: {parameter.numel()}")
-        total_params += parameter.numel()
-    print(f"Total number of parameters in the model: {total_params}")
-    return total_params
+# EncoDec
+from encodec import EncodecModel
+
+
+def instantiate_encodec():
+    """
+    Instantiates a model of the Encodec with preset configurations.
+    Returns:
+        EncodecModel: A configured Encodec model instance.
+    """
+    model = EncodecModel.encodec_model_48khz()
+    model.set_target_bandwidth(24.0)
+    return model
     
 
 def audio_from_embedding(emb, emb_scale, encodec_model, fs_audio):
@@ -51,7 +55,6 @@ def audio_from_embedding(emb, emb_scale, encodec_model, fs_audio):
     resamp_audio_signal = convert_audio(audio_signal, model_sr, fs_audio, target_channels=1) #[2xN] if model 48kHz
 
     return resamp_audio_signal
-
 
 
 def numpy_to_torch(X: np.array):

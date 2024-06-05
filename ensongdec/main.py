@@ -140,29 +140,14 @@ def run_experiment(experiment_metadata, config_filepath):
     figures_list.append(vu.visualize_neural(neural_array, title=title, neural_channel=10, offset=1))
     title = 'Raw Audio Motifs'
     figures_list.append(vu.visualize_audio(audio_motifs, title=title, offset=40000))
-
     
     # --------- PROCESS AUDIO --------- #
-    
-    b, a = fh.load_filter_coefficients_matlab(
-        '/home/jovyan/pablo_tostado/repos/songbirdcore/songbirdcore/filters/butter_bp_250Hz-8000hz_order4_sr25000.mat')
-    audio_motifs = fh.noncausal_filter_2d(audio_motifs, b=b, a=a)
-    
-    # Reduce noise
-    for m in range(len(audio_motifs)):
-        audio_motifs[m] = nr.reduce_noise(audio_motifs[m], sr=fs_audio)
-    
+    audio_motifs = preprocess_audio(audio_motifs, fs_audio)    
     
     # --------- INSTANTIATE ENCODEC --------- #
-    
-    # Instantiate a pretrained EnCodec model
-    encodec_model = EncodecModel.encodec_model_48khz()
-    # bandwidth = 24kbps for 48kHz model (n_q=16)
-    encodec_model.set_target_bandwidth(24.0)
-    
-    # Embed motifs
+    encodec_model = instantiate_encodec()
+    # Embed motifs (warning: slow!)
     audio_embeddings, audio_codes, scales = eu.encodec_encode_audio_array_2d(audio_motifs, fs_audio, encodec_model)
-    
     
     # --------- PROCESS NEURAL --------- #
     
@@ -184,9 +169,13 @@ def run_experiment(experiment_metadata, config_filepath):
         neural_array = np.array([su.resample_by_interpolation_2d(n, samples_neural, samples_embeddings) for n in neural_array])
     else:
         raise ValueError("Neural mode must be 'RAW', 'TX' or 'TRAJECTORIES'")
+
+    print(f'History_size: {history_size}, Neural array shape {neural_array.shape}, Audio embeddings shape {audio_embeddings.shape}.')
+    if neural_array.shape[-1] != audio_embeddings.shape[-1]:
+        warnings.warn("WARNING: Neural data length must match audio embeddings length after downsampling!")
     
     bin_length = trial_length_neural / neural_array.shape[2] # ms
-    history_size = int(neural_history_ms // bin_length) # Must be minimum 1
+    decoder_history_size = int(neural_history_ms // bin_length) # Must be minimum 1
     print('Using {} bins of neural data history.'.format(history_size))
 
     # Plot and save figures for resampled neural_array and audio_embeddings
@@ -194,10 +183,8 @@ def run_experiment(experiment_metadata, config_filepath):
     figures_list.append(vu.visualize_neural(neural_array, title=title, neural_channel=10, offset=1))
     title = 'Audio Embeddings {}'.format(audio_embeddings.shape)
     figures_list.append(vu.visualize_audio_embeddings(audio_embeddings, title=title, embedding_dim=0, offset=10))
-
     
     # --------- PREPARE DATALOADERS --------- #
-    
     num_motifs = len(neural_array)
     num_train_examples = int(num_motifs * percent_train)
     print(f'Out of the {num_motifs} total motifs, the first {num_train_examples} are used for training. The rest, for testing.')
@@ -212,27 +199,26 @@ def run_experiment(experiment_metadata, config_filepath):
     
     # Create dataset objects
     max_temporal_shift_bins = int(max_temporal_shift_ms // bin_length) # Temporal jitter for data augmentation
+
+    train_dataset, train_dataloader = prepare_dataloader(train_neural, 
+                                                         train_audio, 
+                                                         batch_size, 
+                                                         decoder_history_size, 
+                                                         max_temporal_shift=max_temporal_shift_bins,
+                                                         noise_level=noise_level,
+                                                         transform_probability=transform_probability, 
+                                                         shuffle_samples = True)
     
-    train_dataset = NeuralAudioDataset(train_neural, 
-                                       train_audio, 
-                                       history_size, 
-                                       max_temporal_shift=max_temporal_shift_bins,
-                                       noise_level=noise_level,
-                                       transform_probability=transform_probability)
-    
-    test_dataset = NeuralAudioDataset(test_neural, 
-                                      test_audio, 
-                                      history_size, 
-                                      max_temporal_shift=0,
-                                      noise_level=0,
-                                      transform_probability=0)
-    
-    print('Train samples: ', len(train_dataset))
-    print('Test samples: ', len(test_dataset))
-    
-    # Prepare data loaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    test_dataset, test_loader = prepare_dataloader(test_neural, 
+                                                   test_audio, 
+                                                   batch_size, 
+                                                   decoder_history_size, 
+                                                   max_temporal_shift=0,
+                                                   noise_level=0,
+                                                   transform_probability=0, 
+                                                   shuffle_samples = False)
+
+    print('Train samples: ', len(train_dataset), 'Test samples: ', len(test_dataset))
     
     
     # --------- TRAIN MODEL --------- #
@@ -263,7 +249,7 @@ def run_experiment(experiment_metadata, config_filepath):
     # TRACK with WANDB
     wandb.init(
         project = "_".join([bird, neural_mode, neural_key]),
-        name = experiment_name, 
+        name = experiment_name,
         config = experiment_metadata # track hyperparameters and run metadata
     )
     

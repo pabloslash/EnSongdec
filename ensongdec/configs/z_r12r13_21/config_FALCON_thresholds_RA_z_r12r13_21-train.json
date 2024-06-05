@@ -1,21 +1,16 @@
 {
     "common_dirs": {
-        "dataset_dir": "/home/jovyan/pablo_tostado/bird_song/enSongDec/data/",
-        "models_checkpoints_dir": "/home/jovyan/pablo_tostado/bird_song/enSongDec/models_checkpoints/",
-        "train_figures_dir": "/home/jovyan/pablo_tostado/bird_song/enSongDec/models_checkpoints/"
+        "models_checkpoints_dir": "/home/jovyan/pablo_tostado/bird_song/enSongDec/ensongdec/models_checkpoints/",
+        "train_figures_dir": "/home/jovyan/pablo_tostado/bird_song/enSongDec/ensongdec/models_checkpoints/"
     },
     "common_params": {
-        "dataset_filename": "THRESHOLDS_z_r12r13_21_20240424_074708",
-        "neural_mode": "THRESHOLDS",
+        "neural_mode": "TX",
         "nucleus": "RA",
-        "neural_key": "ra_all",
         "network": "FFNN",
-        "bird": "z_r12r13_21",
-        "date": "2021-07-05",
-        "session": "1209_g0"        
+        "bird": "z_r12r13_21"     
     },
     "train_params": {
-            "config_id": "config1",
+            "config_id": "config_train",
             "data_processing_params": {
                 "neural_history_ms": 20,
                 "gaussian_smoothing_sigma": 30
@@ -26,8 +21,7 @@
                 "transform_probability": 0.5
             },
             "training_params": {
-                "percent_train": 0.8,
-                "percent_test": 0.2,
+                "percent_validation": 0,
                 "batch_size": 32,
                 "learning_rate": 5e-4,
                 "num_epochs": 2000

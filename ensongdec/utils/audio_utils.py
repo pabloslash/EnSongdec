@@ -128,6 +128,6 @@ def plot_spectrogram_sxx(sxx, f=None, tm=None, ax=None):
     
 def save_signal_as_wav(signal, fs, file_path='test.wav'):
     """
-        Save a signal to a .wav file given its sampling rate.
+        Convert signal to 16-bit format and save to a .wav file given its sampling rate.
     """
-    wavfile.write(file_path, fs, signal)
+    wavfile.write(file_path, fs, np.int16(signal))
