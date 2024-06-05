@@ -1,5 +1,5 @@
 import numpy as np
-from ceciestunepipe.util.sound import spectral as sp
+from scipy import signal
 
 
 def resample_by_interpolation_2d(dat, input_fs, output_fs):
@@ -59,7 +59,7 @@ def resample_by_furier_1d(signal, num):
 
      Output: [1 x (re)Samples]
     """
-    return sp.signal.resample(x, num, t=None, axis=0, window=None, domain='time')
+    return signal.resample(x, num, t=None, axis=0, window=None, domain='time')
 
 
 # def normalize_array_2d(X):
