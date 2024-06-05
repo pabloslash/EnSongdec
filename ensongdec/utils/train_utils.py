@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 # Ensure you import your custom modules here if they are part of your project
 import songbirdcore.spikefinder.spike_analysis_helper as sh
 import songbirdcore.spikefinder.filtering_helper as fh
-import utils.signal_utils as su
+import ensongdec.utils.signal_utils as su
 
 # EnSongdec
 from neural_audio_dataset import NeuralAudioDataset
