@@ -7,15 +7,8 @@ import torch
 import torch.optim as optim
 
 # ensongdec
-from FFNNmodel import FeedforwardNeuralNetwork, ffnn_predict
-import utils.encodec_utils as eu
-
-def add_to_sys_path(root_dir):
-    for dirpath, dirnames, filenames in os.walk(root_dir):
-        sys.path.append(dirpath)        
-root_dir = '/home/jovyan/pablo_tostado/repos/falcon_b1/'
-add_to_sys_path(root_dir)
-from nwb_utils import load_nwb
+from ensongdec.src.models.FFNNmodel import FeedforwardNeuralNetwork, ffnn_predict
+from ensongdec.utils import encodec_utils as eu
     
 
 def load_experiment_metadata(directory, filename):
@@ -48,7 +41,10 @@ def load_model(model_directory, model_filename, model_layers, learning_rate):
     Returns:
         tuple: A tuple containing the loaded model and its optimizer.
     """
-    checkpoint = torch.load(os.path.join(model_directory, model_filename))
+    # Check if CUDA is available and choose the appropriate device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # Load the model checkpoint
+    checkpoint = torch.load(os.path.join(model_directory, model_filename), map_location=device)
     model = FeedforwardNeuralNetwork(model_layers)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
@@ -57,9 +53,9 @@ def load_model(model_directory, model_filename, model_layers, learning_rate):
 
 
 
-def generate_trialized_original_and_reconstructed_audio(ffnn_model, dataset, loader, fs_audio, encodec_model, scale, num_trials):
+def generate_original_and_reconstructed_audio(ffnn_model, dataset, loader, fs_audio, encodec_model, scale, num_trials):
     '''
-        This function has the advantage (over generate_original_and_reconstructed_audio) of not losing samples when resampling to original sample rate in eu.audio_from_embedding.
+    Generate trialized audio (original & reconstructed from neural data)
     '''
     # ORIGINAL AUDIO
     it = iter(dataset)
@@ -73,7 +69,7 @@ def generate_trialized_original_and_reconstructed_audio(ffnn_model, dataset, loa
     original_audio = [eu.audio_from_embedding(original_embeddings[:,i,:], scale, encodec_model, fs_audio).squeeze(0).squeeze(0).detach() for i in range(num_trials)]
     
     # DECODED AUDIO
-    decoded_embeddings, error = ffnn_predict(ffnn_model, loader)
+    decoded_embeddings, error = ffnn_error_predict(ffnn_model, loader)
     decoded_embeddings = decoded_embeddings.permute(1, 0)
     decoded_embeddings = decoded_embeddings.reshape(decoded_embeddings.shape[0], num_trials, -1) # Embedding_dim x Trials x Samples
     
@@ -83,23 +79,23 @@ def generate_trialized_original_and_reconstructed_audio(ffnn_model, dataset, loa
     return np.array(original_audio), np.array(decoded_audio)
 
 
-def generate_original_and_reconstructed_audio(ffnn_model, dataset, loader, fs_audio, encodec_model, scale):
+# def generate_original_and_reconstructed_audio(ffnn_model, dataset, loader, fs_audio, encodec_model, scale):
     
-    # ORIGINAL AUDIO
-    it = iter(dataset)
-    samples = []
-    for _ in range(len(dataset)):
-        sample = next(it)
-        samples.append(sample[1])  
+#     # ORIGINAL AUDIO
+#     it = iter(dataset)
+#     samples = []
+#     for _ in range(len(dataset)):
+#         sample = next(it)
+#         samples.append(sample[1])  
     
-    original_embeddings = torch.stack(samples, dim=0).permute(1,0)
-    original_audio = eu.audio_from_embedding(original_embeddings, scale, encodec_model, fs_audio).squeeze(0).squeeze(0)
+#     original_embeddings = torch.stack(samples, dim=0).permute(1,0)
+#     original_audio = eu.audio_from_embedding(original_embeddings, scale, encodec_model, fs_audio).squeeze(0).squeeze(0)
 
-    # DECODED AUDIO
-    decoded_embeddings, error = ffnn_predict(ffnn_model, loader)
-    decoded_embeddings = decoded_embeddings.permute(1, 0)
+#     # DECODED AUDIO
+#     decoded_embeddings, error = ffnn_error_predict(ffnn_model, loader)
+#     decoded_embeddings = decoded_embeddings.permute(1, 0)
 
-    decoded_embeddings = decoded_embeddings.to(scale.device)
-    decoded_audio = eu.audio_from_embedding(decoded_embeddings, scale, encodec_model, fs_audio).squeeze(0).squeeze(0)
+#     decoded_embeddings = decoded_embeddings.to(scale.device)
+#     decoded_audio = eu.audio_from_embedding(decoded_embeddings, scale, encodec_model, fs_audio).squeeze(0).squeeze(0)
 
-    return original_audio.detach().numpy(), decoded_audio.detach().numpy()
+#     return original_audio.detach().numpy(), decoded_audio.detach().numpy()

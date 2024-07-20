@@ -30,6 +30,8 @@ from neural_audio_dataset import NeuralAudioDataset
 import utils.audio_utils as au
 import utils.signal_utils as su
 import utils.encodec_utils as eu
+import utils.train_utils as tu
+from utils.evaluation_utils import load_experiment_metadata, load_model
 
 # songbirdcore
 import songbirdcore.spikefinder.spike_analysis_helper as sh
@@ -93,13 +95,13 @@ def load_model_statedict(models_checkpoints_dir, dataset_dir, model_filename, sh
     fs_audio = data_dict['fs_audio']
     fs_neural = data_dict['fs_neural']
 
-    check_experiment_duration(neural_array, audio_motifs, fs_neural, fs_audio)
+    tu.check_experiment_duration(neural_array, audio_motifs, fs_neural, fs_audio)
 
     # --------- PROCESS AUDIO --------- #
-    audio_motifs = preprocess_audio(audio_motifs, fs_audio)
+    audio_motifs = tu.preprocess_audio(audio_motifs, fs_audio)
 
     # --------- INSTANTIATE ENCODEC --------- #
-    encodec_model = instantiate_encodec()
+    encodec_model = eu.instantiate_encodec()
     # Embed motifs (warning: slow!)
     audio_embeddings, audio_codes, scales = eu.encodec_encode_audio_array_2d(audio_motifs, fs_audio, encodec_model)
     
@@ -109,7 +111,7 @@ def load_model_statedict(models_checkpoints_dir, dataset_dir, model_filename, sh
     target_samples = audio_embeddings.shape[-1]
 
     print(f'WARNING: Neural samples should be greater than embedding samples! Downsampling neural data from {original_samples} samples to match audio embedding samples {target_samples}.')
-    neural_array = process_neural_data(neural_array, neural_mode, gaussian_smoothing_sigma, original_samples, target_samples)
+    neural_array = tu.process_neural_data(neural_array, neural_mode, gaussian_smoothing_sigma, original_samples, target_samples)
     
     bin_length = ((original_samples / fs_neural)*1000) / neural_array.shape[-1] # ms
     history_size = int(neural_history_ms // bin_length) # Must be minimum 1
@@ -129,20 +131,20 @@ def load_model_statedict(models_checkpoints_dir, dataset_dir, model_filename, sh
     # Create dataset objects
     max_temporal_shift_bins = int(max_temporal_shift_ms // bin_length) # Temporal jitter for data augmentation
 
-    train_dataset, train_dataloader = prepare_dataloader(train_neural, 
+    train_dataset, train_dataloader = tu.prepare_dataloader(train_neural, 
                                                          train_audio, 
                                                          batch_size, 
-                                                         decoder_history_size, 
-                                                         max_temporal_shift=max_temporal_shift_bins,
+                                                         history_size, 
+                                                         max_temporal_shift_bins=max_temporal_shift_bins,
                                                          noise_level=noise_level,
                                                          transform_probability=transform_probability, 
                                                          shuffle_samples = True)
     
-    test_dataset, test_loader = prepare_dataloader(test_neural, 
+    test_dataset, test_loader = tu.prepare_dataloader(test_neural, 
                                                    test_audio, 
                                                    batch_size, 
-                                                   decoder_history_size, 
-                                                   max_temporal_shift=0,
+                                                   history_size, 
+                                                   max_temporal_shift_bins=0,
                                                    noise_level=0,
                                                    transform_probability=0, 
                                                    shuffle_samples = False)

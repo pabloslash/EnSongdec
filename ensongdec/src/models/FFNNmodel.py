@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
+# import pytorch_lightning as pl
 import torch.nn.functional as F
 import wandb
 
@@ -19,6 +19,13 @@ class FeedforwardNeuralNetwork(nn.Module):
         self.dropout = nn.Dropout(p=dropout_prob)
 
     def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor.
+        """
         x = self.dropout(x)
         for i in range(len(self.layers) - 1):
             x = self.layers[i](x)  
@@ -28,8 +35,22 @@ class FeedforwardNeuralNetwork(nn.Module):
         return x
 
 
-# Training loop
 def ffnn_train(model, dataloader, optimizer, criterion, num_epochs, val_dataloader=None, log_wandb=True):    
+    """
+    Trains the feedforward neural network.
+
+    Args:
+        model (nn.Module): The neural network model to train.
+        dataloader (torch.utils.data.DataLoader): DataLoader for the training data.
+        optimizer (torch.optim.Optimizer): Optimizer for updating the model parameters.
+        criterion (torch.nn.Module): Loss function.
+        num_epochs (int): Number of epochs to train the model.
+        val_dataloader (torch.utils.data.DataLoader, optional): DataLoader for the validation data. Defaults to None.
+        log_wandb (bool, optional): Whether to log metrics to Weights & Biases. Defaults to True.
+
+    Returns:
+        tuple: Lists of training and validation losses and errors.
+    """
     
     # Send model to GPU if available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -83,8 +104,20 @@ def ffnn_train(model, dataloader, optimizer, criterion, num_epochs, val_dataload
     return tot_train_loss, tot_train_err, tot_val_loss, tot_val_err      
 
 
-# Evaluate
+
 def ffnn_evaluate(model, dataloader, criterion, device):
+    """
+    Evaluates the feedforward neural network.
+
+    Args:
+        model (nn.Module): The neural network model to evaluate.
+        dataloader (torch.utils.data.DataLoader): DataLoader for the evaluation data.
+        criterion (torch.nn.Module): Loss function.
+        device (torch.device): Device to perform evaluation on.
+
+    Returns:
+        tuple: Evaluation loss and error.
+    """
     
     # Send model to GPU if available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -107,8 +140,44 @@ def ffnn_evaluate(model, dataloader, criterion, device):
     return val_loss/len(dataloader), val_error/len(dataloader)
 
 
-# Predict
 def ffnn_predict(model, dataloader):
+    """
+    Predicts outputs using the feedforward neural network.
+
+    Args:
+        model (nn.Module): The neural network model to use for prediction.
+        dataloader (torch.utils.data.DataLoader): DataLoader for the data to predict.
+
+    Returns:
+        torch: Predicted outputs.
+    """
+    
+    # Send model to GPU if available
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+    model.eval()
+    
+    predicted_outputs = []
+    with torch.no_grad():
+        for inputs, _ in dataloader:
+            inputs = inputs.to(device)
+
+            predicted_outputs.append(model(inputs))
+            
+    return torch.cat(predicted_outputs, dim=0)
+    
+
+def ffnn_error_predict(model, dataloader):
+    """
+    Predicts outputs using the feedforward neural network.
+
+    Args:
+        model (nn.Module): The neural network model to use for prediction.
+        dataloader (torch.utils.data.DataLoader): DataLoader for the data to predict.
+
+    Returns:
+        tuple: Predicted outputs and errors.
+    """
     
     # Send model to GPU if available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -130,4 +199,14 @@ def ffnn_predict(model, dataloader):
 
 
 def mean_absolute_error(y_true, y_pred):
+    """
+    Computes the mean absolute error between true and predicted values.
+
+    Args:
+        y_true (torch.Tensor): True values.
+        y_pred (torch.Tensor): Predicted values.
+
+    Returns:
+        float: Mean absolute error.
+    """
     return torch.mean(torch.abs(y_true - y_pred)).item()

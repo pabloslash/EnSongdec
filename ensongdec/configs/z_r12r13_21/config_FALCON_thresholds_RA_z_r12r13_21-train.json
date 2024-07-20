@@ -27,7 +27,7 @@
                 "num_epochs": 2000
             },
             "model_params": {
-                "hidden_layer_sizes": [64],
+                "hidden_layer_sizes": [64, 64],
                 "dropout_prob": 0.3
             }
         }

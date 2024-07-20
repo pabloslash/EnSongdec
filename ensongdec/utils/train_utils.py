@@ -12,10 +12,10 @@ from torch.utils.data import DataLoader
 # Ensure you import your custom modules here if they are part of your project
 import songbirdcore.spikefinder.spike_analysis_helper as sh
 import songbirdcore.spikefinder.filtering_helper as fh
-import ensongdec.utils.signal_utils as su
 
 # EnSongdec
-from neural_audio_dataset import NeuralAudioDataset
+from ensongdec.src.models.neural_audio_dataset import NeuralAudioDataset
+import ensongdec.utils.signal_utils as su
 
 # Tim S. noise reduce
 import noisereduce as nr
@@ -88,11 +88,17 @@ def prepare_dataloader(neural_data, audio_data, batch_size, decoder_history_bins
         tuple: A tuple containing the dataset and DataLoader instances.
     """
     
-    dataset = NeuralAudioDataset(neural_data, audio_data, 
-                                 decoder_history_bins, max_temporal_shift=max_temporal_shift_bins, 
-                                 noise_level=noise_level, transform_probability=transform_probability)
+    dataset = NeuralAudioDataset(neural_data, 
+                                 audio_data, 
+                                 decoder_history_bins, 
+                                 max_temporal_shift=max_temporal_shift_bins, 
+                                 noise_level=noise_level, 
+                                 transform_probability=transform_probability)
     
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle_samples)
+    dataloader = DataLoader(dataset, 
+                            batch_size=batch_size, 
+                            shuffle=shuffle_samples)
+    
     print(f'Dataset and Dataloader created. Samples: {len(dataset)}')
     
     return dataset, dataloader

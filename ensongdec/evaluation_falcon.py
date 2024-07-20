@@ -6,21 +6,12 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-import utils.encodec_utils as eu
-import utils.train_utils as tu
-from utils.evaluation_utils import load_experiment_metadata
+from ensongdec.utils import encodec_utils as eu
+import ensongdec.utils.train_utils as tu
+from ensongdec.utils.evaluation_utils import load_experiment_metadata
 
-def add_to_sys_path(root_dir):
-    for dirpath, dirnames, filenames in os.walk(root_dir):
-        sys.path.append(dirpath)        
-ensongdec_dir = '/home/jovyan/pablo_tostado/bird_song/enSongDec/'
-add_to_sys_path(ensongdec_dir)
-falconb1 = '/home/jovyan/pablo_tostado/repos/falcon_b1/'
-add_to_sys_path(falconb1)
-
-from nwb_utils import load_nwb
-
-
+# From falcon-challenge
+from preproc.b1_nwb_utils import load_nwb_b1
 
 def prepare_eval_dataloader_from_nwb(models_checkpoints_dir, model_filename, nwb_file_path):
     
@@ -36,7 +27,7 @@ def prepare_eval_dataloader_from_nwb(models_checkpoints_dir, model_filename, nwb
     batch_size = 1 # Predict one batch at a time
 
     # --------- LOAD DATA --------- #
-    trial_info, neural_array, fs_neural, audio_motifs, fs_audio = load_nwb(nwb_file_path)
+    trial_info, neural_array, fs_neural, audio_motifs, fs_audio = load_nwb_b1(nwb_file_path)
     tu.check_experiment_duration(neural_array, audio_motifs, fs_neural, fs_audio)
 
     # --------- INSTANTIATE ENCODEC --------- #
