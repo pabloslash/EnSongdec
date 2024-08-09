@@ -22,6 +22,7 @@ setup(name='ensongdec',
                         'matplotlib',
                         'pandas',
                         'librosa',
+                        'noisereduce',
                         'wandb'
                        ],
       
