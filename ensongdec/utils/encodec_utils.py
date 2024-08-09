@@ -77,7 +77,7 @@ def encodec_encode(audio: torch.Tensor, sr, model):
         sr: audio sampling rate
         model: encodec.model.EncodecModel
     '''
-
+    
     # Interpolate audio to desired model sample_rate / n_channels:
     original_sr, target_sr = sr, model.sample_rate
     audio = convert_audio(audio, original_sr, target_sr, model.channels) #[2xN] if model 48kHz
@@ -85,7 +85,7 @@ def encodec_encode(audio: torch.Tensor, sr, model):
 
     # Extract discrete codes from EnCodec
     with torch.no_grad():
-        encoded_frames = model.encode(audio)    
+        encoded_frames = model.encode(audio) 
    
     return encoded_frames, audio   
 

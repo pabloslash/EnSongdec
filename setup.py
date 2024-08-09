@@ -21,7 +21,8 @@ setup(name='ensongdec',
       install_requires=['numpy',
                         'matplotlib',
                         'pandas',
-                        'librosa'
+                        'librosa',
+                        'wandb'
                        ],
       
       classifiers=(
