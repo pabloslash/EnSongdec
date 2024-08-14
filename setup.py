@@ -22,8 +22,8 @@ setup(name='ensongdec',
                         'matplotlib',
                         'pandas',
                         'librosa',
-                        'noisereduce',
-                        'wandb'
+                        'wandb',
+                        'noisereduce'
                        ],
       
       classifiers=(

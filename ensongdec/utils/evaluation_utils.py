@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 
 # ensongdec
-from ensongdec.src.models.FFNNmodel import FeedforwardNeuralNetwork, ffnn_predict
+from ensongdec.src.models.FFNNmodel import FeedforwardNeuralNetwork, ffnn_predict, ffnn_error_predict
 from ensongdec.utils import encodec_utils as eu
     
 
